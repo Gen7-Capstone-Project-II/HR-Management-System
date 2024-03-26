@@ -1,0 +1,354 @@
+<template>
+  <div class="table-wrapper">
+    <div class="table-list ps-3 pe-3">
+      <div class="cardHeader">
+        <div class="row g-0">
+          <div class="col-auto">
+            <router-link to="/setting" class="link-class">
+              <button class="btn border-0 d-flex justify-content-center align-items-center"><i
+                  class="fa-solid fa-arrow-left"></i></button>
+            </router-link>
+          </div>
+          <div class="col">
+            <h4>Department</h4>
+          </div>
+        </div>
+        <div>
+          <a href="#" class="btn-create" @click="showPopup1 = true">Create Department</a>
+          <PopupModel1 v-if="showPopup1" @closePopup1="showPopup1 = false"></PopupModel1>
+        </div>
+      </div>
+      <div class="padding1">
+        <table class="table mt-2 table-borderless">
+          <thead>
+            <tr>
+              <th scope="col" class="left">No</th>
+              <th scope="col" class="center">Department</th>
+              <th scope="col" class="center">Description</th>
+              <th scope="col" class="right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-if="loading">
+              <tr>
+                <td colspan="4" class="center">
+                  <div class="loading-container">
+                    <div class="loading-animation"></div>
+                  </div>
+                </td>
+              </tr>
+            </template>
+            <template v-else>
+              <tr v-for="(department, index) in departments" :key="department.id">
+                <td class="left small-text">{{ index + 1 }}.</td>
+                <td class="center small-text">{{ department.deptName }}</td>
+                <td class="center small-text">{{ department.deptDescription }}</td>
+                <td class="right">
+                  <button type="button" class="btn btn-success btn-sm small-button" style="margin-right: 5px;"
+                    @click="openEdit(department)">Edit</button>
+                  <!-- <PopupModel2 v-if="showPopup2" @closePopup2="showPopup2 = false"></PopupModel2> -->
+                  <button type="button" class="btn btn-danger btn-sm small-button"
+                    @click="confirmDelete(department.id)">Delete</button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- edit dialog -->
+  <div class="popup" v-if="showEdit">
+    <div class="popup-content" style="width: 60%;">
+      <div class="form-container">
+        <form class="row g-3">
+          <dev class="cardHeader">
+            <h2>Update Department</h2>
+            <!-- <p v-if="department">{{department}}</p>
+          <p v-else="!department">no data</p> -->
+          </dev>
+          <div class="row justify-content-center align-content-center">
+            <div class="col-md-11">
+              <label for="inputDepartment" class="form-label">Department</label>
+              <input class="form-control" placeholder=" " id="floatingTextarea2" v-model="department.deptName"></input>
+            </div>
+            <div class="col-md-11 pt-3">
+              <label for="inputDepartment" class="form-label">Description</label>
+              <textarea class="form-control" placeholder=" " id="floatingTextarea2" style="height: 150px"
+                v-model="department.deptDescription"></textarea>
+            </div>
+          </div>
+          <div class="col-12 d-flex">
+            <button type="button" @click="closeEdit" class="btn btn-danger"
+              style="margin-right: 5px;width: 50%;">Cancel</button>
+            <button type="button" class="btn btn-success" @click="confirmEdit(department.id)"
+              style="width: 50%;">Update</button>
+
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</template>
+
+<script>
+import PopupModel1 from '../components/addnewdepartment.vue';
+import PopupModel2 from '../components/updatedepartment.vue';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+
+export default {
+  components: {
+    PopupModel1,
+    PopupModel2
+  },
+  data() {
+    return {
+      showPopup1: false,
+      showPopup2: false,
+      showEdit: false,
+      departments: [],
+      department: [],
+      loading: false,
+    };
+  },
+  mounted() {
+    console.log("Component mounted");
+    this.fetchDepartments();
+  },
+  methods: {
+    async deleteDepartment(departmentId) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.delete(`https://hrm-system-test.up.railway.app/api/department/${departmentId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
+        console.log(response.data);
+        // Remove the deleted announcement from the array
+        this.departments = this.departments.filter(department => department.id !== departmentId);
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    openEdit(department) {
+      this.showEdit = true
+      this.department = department
+      console.log(this.department)
+
+    },
+    closeEdit() {
+      this.showEdit = false
+    },
+    async fetchDepartments() {
+      this.loading = true;
+      try {
+        const token = localStorage.getItem('token');
+
+        const response = await axios.get('https://hrm-system-test.up.railway.app/api/department', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        this.departments = response.data.data;
+        
+        console.log(response.data);
+      } catch (error) {
+        console.error(error);
+      }
+      this.loading = false;
+    },
+    async updateDepartment(id) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.put(`https://hrm-system-test.up.railway.app/api/department/${this.department.id}`, {
+          deptName: this.department.deptName,
+          deptDescription: this.department.deptDescription
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log(response.data);
+        this.showEdit = false;
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    async confirmDelete(departmentId) {
+      try {
+        const result = await Swal.fire({
+          title: 'Are you sure?',
+          text: 'You won\'t be able to revert this!',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Yes, delete it!',
+          reverseButtons: true
+        });
+
+        if (result.isConfirmed) {
+          await this.deleteDepartment(departmentId);
+          const index = this.departments.findIndex(department => department.id === departmentId);
+          this.departments.splice(index, 1);
+
+          Swal.fire({
+            title: 'Deleted!',
+            text: 'Your file has been deleted.',
+            icon: 'success'
+          }).then(() => {
+            window.location.reload();
+          });
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    async confirmEdit(id) {
+      try {
+        this.closeEdit();
+        const result = await Swal.fire({
+          title: 'Are you sure?',
+          text: 'Do you want to Update this Department?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Yes, I do!',
+          reverseButtons: true,
+        });
+        if (result.isConfirmed) {
+          await this.updateDepartment(id).then(() => {
+            Swal.fire({
+              title: 'Updated!',
+              text: 'Department has been Updated.',
+              icon: 'success'
+            }).then(() => {
+              this.fetchDepartments();
+            });
+          });
+
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+  }
+};
+</script>
+
+<style scoped>
+.table-wrapper {
+  padding: 20px;
+}
+
+.table-list .cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-right: 20px;
+  padding-top: 10px;
+}
+
+.cardHeader h4 {
+  /* padding-left: 15px;
+  padding-top: 20px; */
+  color: rgb(0, 108, 81);
+}
+
+.cardHeader .btn {
+  /* padding-left: 15px;
+  padding-top: 20px; */
+  color: rgb(0, 108, 81);
+}
+
+.link-class {
+  text-decoration: none;
+}
+
+.cardHeader .btn-create {
+  position: relative;
+  padding: 5px 10px;
+  background: rgb(0, 108, 81);
+  text-decoration: none;
+  color: white;
+  border-radius: 6px;
+}
+
+.table-list {
+  background-color: white;
+  border-radius: 10px;
+  border-collapse: separate;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+}
+
+.loading-animation {
+  border: 6px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #333;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.popup-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  width: 40%;
+  display: flex;
+  justify-content: center;
+  /* Center the form horizontally */
+  align-items: center;
+  /* Center the form vertically */
+  z-index: 10000;
+}
+
+.cardHeader h2 {
+  text-align: center;
+  font-weight: 600;
+  color: rgb(0, 108, 81);
+  margin-top: 10px;
+}
+
+.custom-textarea-height {
+  min-height: 150px;
+  /* You can adjust this value to change the height */
+}
+
+.col-12 {
+  text-align: center;
+  padding-top: 10px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>

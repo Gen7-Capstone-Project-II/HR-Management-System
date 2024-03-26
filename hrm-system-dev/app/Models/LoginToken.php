@@ -1,0 +1,13 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class LoginToken extends Model
+{
+    use HasFactory;
+    protected $table = 'login_token';
+    protected $fillable = ['token', 'user_id', 'expires_at'];
+}
